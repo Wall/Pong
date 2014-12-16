@@ -20,9 +20,10 @@ import javax.microedition.khronos.opengles.GL10;
  */
 public class MainRenderer implements GLSurfaceView.Renderer {
 
-    public static int DIMENSIONS = 2;
+    public static int DIMENSIONS = 3;
     private int _rectangleProgram;
     private int _rectangleAPositionLocation;
+    private int transformationMatrixLocation;
     private FloatBuffer vertexBuffer;
     private ShortBuffer indexBuffer;
     private float[] baseVertices;
@@ -39,6 +40,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         GLES20.glAttachShader(_rectangleProgram, _rectangleFragmentShader);
         GLES20.glLinkProgram(_rectangleProgram);
         _rectangleAPositionLocation = GLES20.glGetAttribLocation(_rectangleProgram, "aPosition");
+        transformationMatrixLocation = GLES20.glGetUniformLocation(_rectangleProgram, "transformationMatrix");
     }
 
     public void onSurfaceChanged(GL10 gl, int width, int height) {
@@ -53,16 +55,25 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         GLES20.glEnableVertexAttribArray(_rectangleAPositionLocation);
         //GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
 
-        System.arraycopy(baseVertices, 0, vertices, 0, baseVertices.length);
-        for (int i = 0; i < shapes.size(); ++i) {
-            applyTransform(shapes.get(i));
-        }
+        //System.arraycopy(baseVertices, 0, vertices, 0, baseVertices.length);
+        //for (int i = 0; i < shapes.size(); ++i) {
+            //applyTransform(shapes.get(i));
+        //}
         vertexBuffer.position(0);
         vertexBuffer.put(vertices);
         vertexBuffer.position(0);
+        float[] mat = new float[] {
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+        };
+        //GLES20.glEnableVertexAttribArray(transformationMatrixLocation);
+
 
         for (int i = 0; i < shapes.size(); ++i) {
             Shape shape = shapes.get(i);
+            GLES20.glUniformMatrix4fv(transformationMatrixLocation, 1, false, shape.genTransformationMatrix() ,0);
             GLES20.glDrawElements(GLES20.GL_TRIANGLES, shape.getIndices().length,
                     GLES20.GL_UNSIGNED_SHORT, shape.getIndexBuffer());//sizeof(float)
         }
@@ -125,13 +136,14 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     }
 
     private final String _rectangleVertexShaderCode =
-            "attribute vec4 aPosition;              \n"
-                    +   "void main() {                          \n"
-                    +   " gl_Position = aPosition;              \n"
-                    +   "}                                      \n";
+                    "attribute vec4 aPosition;                                     \n" +
+                    "uniform mat4 transformationMatrix;                            \n" +
+                    "void main() {                                                 \n" +
+                    "   gl_Position = transformationMatrix*aPosition;            \n" +
+                    "}                                                             \n";
 
     private final String _rectangleFragmentShaderCode =
-            "void main() {                          \n"
+                    "void main() {                              \n"
                     +   " gl_FragColor = vec4(1,1,1,1);         \n"
                     +   "}                                      \n";
 
@@ -150,12 +162,15 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         //System.out.println("FLAGHx: " + x + ", " + y);
         int endIndex = shape.getVertexOffset()*DIMENSIONS + shape.getVertices().length;
         for (int i = shape.getVertexOffset()*DIMENSIONS; i < endIndex; ++i) {
-            if (i%2 == 0) {
-                vertices[i] += x;
-                vertices[i] = vertices[i] * 2 /RESOLUTION_X;
-            } else {
-                vertices[i] += y;
-                vertices[i] = -vertices[i] * 2 /RESOLUTION_Y;
+            switch (i%DIMENSIONS) {
+                case 0:
+                    vertices[i] += x;
+                    vertices[i] = vertices[i] * 2 /RESOLUTION_X;
+                    break;
+                case 1:
+                    vertices[i] += y;
+                    vertices[i] = -vertices[i] * 2 /RESOLUTION_Y;
+                    break;
             }
         }
     }

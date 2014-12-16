@@ -46,23 +46,23 @@ public class MainActivity extends Activity {
             Shape.setMainRenderer(mainRenderer);
 
             final Shape shape = new Shape(new float[] {
-                    -0.23f,      0.15f,
-                    0.11f,      0.43f,
-                    0.375f,  0.5f},
+                    -50, 0, 0,
+                    0, 0, 0,
+                    0, -50, 0},
                     new short[] {
                     0, 1, 2
                     });
-            final Shape shape2 = new Shape(new float[] {
+            /*final Shape shape2 = new Shape(new float[] {
                     0.23f,      0.85f,
                     0.11f,      1.13f,
                     0.375f,  1.2f},
                     new short[] {
                             0, 1, 2
-                    });
+                    });*/
             final Pad pad = new Pad();
 
             //mainRenderer.add(shape2);
-            //mainRenderer.add(shape);
+            mainRenderer.add(shape);
             mainRenderer.add(pad);
             mainRenderer.init();
             //pad.translate(0, 0.7f);
