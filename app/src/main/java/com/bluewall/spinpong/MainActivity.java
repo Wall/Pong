@@ -10,7 +10,9 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.WindowManager;
 
+import com.bluewall.spinpong.UI.Ball;
 import com.bluewall.spinpong.UI.Pad;
+import com.bluewall.spinpong.UI.ScreenInfo;
 import com.bluewall.spinpong.gles.MainRenderer;
 import com.bluewall.spinpong.gles.MainSurfaceView;
 import com.bluewall.spinpong.gles.OnGlobalTouchListener;
@@ -28,8 +30,11 @@ public class MainActivity extends Activity {
         DisplayMetrics displayMetrics = new DisplayMetrics();
         WindowManager wm = (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE); // the results will be higher than using the activity context object or the getWindowManager() shortcut
         wm.getDefaultDisplay().getMetrics(displayMetrics);
-        final int screenWidth = displayMetrics.widthPixels;
-        final int screenHeight = displayMetrics.heightPixels;
+        //final int screenWidth = displayMetrics.widthPixels;
+        //final int screenHeight = displayMetrics.heightPixels;
+
+        ScreenInfo.RES_X = displayMetrics.widthPixels;
+        ScreenInfo.RES_Y = displayMetrics.heightPixels;
 
         ActivityManager am  = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         ConfigurationInfo info  = am.getDeviceConfigurationInfo();
@@ -51,7 +56,7 @@ public class MainActivity extends Activity {
                     0, -50, 0},
                     new short[] {
                     0, 1, 2
-                    });
+                    }, new float[] {});
             /*final Shape shape2 = new Shape(new float[] {
                     0.23f,      0.85f,
                     0.11f,      1.13f,
@@ -60,10 +65,12 @@ public class MainActivity extends Activity {
                             0, 1, 2
                     });*/
             final Pad pad = new Pad();
+            final Ball ball = new Ball();
 
             //mainRenderer.add(shape2);
             mainRenderer.add(shape);
             mainRenderer.add(pad);
+            mainRenderer.add(ball);
             mainRenderer.init();
             //pad.translate(0, 0.7f);
             new Thread(new Runnable() {
@@ -87,7 +94,7 @@ public class MainActivity extends Activity {
                 public boolean onTouch(MotionEvent event) {
                     //if (event.getAction() == MotionEvent.ACTION_MOVE) {
                         //System.out.println("DOWN: " + event.getRawX() + ", " + event.getRawY());
-                        pad.set(event.getRawX() - screenWidth/2, event.getRawY() - screenHeight/2);
+                        pad.set(event.getRawX() - ScreenInfo.RES_X/2 - 250, event.getRawY() - ScreenInfo.RES_Y/2);
                     //}
                     return true;
                 }

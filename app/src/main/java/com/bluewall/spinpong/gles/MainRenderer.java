@@ -23,12 +23,16 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     public static int DIMENSIONS = 3;
     private int _rectangleProgram;
     private int _rectangleAPositionLocation;
+    private int normalLocation;
     private int transformationMatrixLocation;
     private FloatBuffer vertexBuffer;
+    private FloatBuffer normalBuffer;
     private ShortBuffer indexBuffer;
     private float[] baseVertices;
     private float[] vertices = new float[] {};
+    private float[] normals = new float[] {};
     private List<Shape> shapes = new ArrayList<>();
+
 
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         gl.glClearColor(0.0f, 0.0f, 0.0f, 1);
@@ -40,6 +44,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         GLES20.glAttachShader(_rectangleProgram, _rectangleFragmentShader);
         GLES20.glLinkProgram(_rectangleProgram);
         _rectangleAPositionLocation = GLES20.glGetAttribLocation(_rectangleProgram, "aPosition");
+        normalLocation = GLES20.glGetAttribLocation(_rectangleProgram, "normal");
         transformationMatrixLocation = GLES20.glGetUniformLocation(_rectangleProgram, "transformationMatrix");
     }
 
@@ -53,15 +58,17 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         GLES20.glUseProgram(_rectangleProgram);
         GLES20.glVertexAttribPointer(_rectangleAPositionLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, vertexBuffer);
         GLES20.glEnableVertexAttribArray(_rectangleAPositionLocation);
+        GLES20.glVertexAttribPointer(normalLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, normalBuffer);
+        GLES20.glEnableVertexAttribArray(normalLocation);
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+        //GLES20.glVertexAttribPointer(normalLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, normalBuffer);
         //GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
 
         //System.arraycopy(baseVertices, 0, vertices, 0, baseVertices.length);
         //for (int i = 0; i < shapes.size(); ++i) {
             //applyTransform(shapes.get(i));
         //}
-        vertexBuffer.position(0);
-        vertexBuffer.put(vertices);
-        vertexBuffer.position(0);
+
         float[] mat = new float[] {
                 1, 0, 0, 0,
                 0, 1, 0, 0,
@@ -97,37 +104,32 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         System.arraycopy(vertices, 0, newVertices, 0, vertices.length);
         System.arraycopy(sVertices, 0, newVertices, vertices.length, sVertices.length);
         vertices = newVertices;
-    }
 
-    private void initShapes()  {
-        float rectangleVFA[] = {
-                0,      0,
-                0,      0.5f,
-                0.375f,  0.5f,
-                0.75f,  0.5f,
-                0.75f,  0,
-                0,      0
-        };
-        ByteBuffer rectangleVBB = ByteBuffer.allocateDirect(rectangleVFA.length * 4);
-        rectangleVBB.order(ByteOrder.nativeOrder());
-        vertexBuffer = rectangleVBB.asFloatBuffer();
-        vertexBuffer.put(rectangleVFA);
-        vertexBuffer.position(0);
-
-        short[] indices = {
-                0,1,2,3,4,5
-        };
-        ByteBuffer sByteBuffer = ByteBuffer.allocateDirect(indices.length*2);
-        sByteBuffer.order(ByteOrder.nativeOrder());
-        indexBuffer = sByteBuffer.asShortBuffer();
-        indexBuffer.put(indices);
-        indexBuffer.position(0);
+        float[] sNormals = shape.getNormals();
+        float[] newNormals = new float[normals.length + sNormals.length];
+        System.arraycopy(normals, 0, newNormals, 0, normals.length);
+        System.arraycopy(sNormals, 0, newNormals, normals.length, sNormals.length);
+        normals = newNormals;
     }
 
     public void init() {
         ByteBuffer rectangleVBB = ByteBuffer.allocateDirect(vertices.length * 4);
         rectangleVBB.order(ByteOrder.nativeOrder());
         vertexBuffer = rectangleVBB.asFloatBuffer();
+
+        vertexBuffer.position(0);
+        vertexBuffer.put(vertices);
+        vertexBuffer.position(0);
+
+        ByteBuffer normalVBB = ByteBuffer.allocateDirect(vertices.length * 4);
+        normalVBB.order(ByteOrder.nativeOrder());
+        normalBuffer = normalVBB.asFloatBuffer();
+
+        normalBuffer.position(0);
+        normalBuffer.put(normals);
+        normalBuffer.position(0);
+
+
 
         baseVertices = new float[vertices.length];
         System.arraycopy(vertices, 0, baseVertices, 0, vertices.length);
@@ -136,43 +138,49 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     }
 
     private final String _rectangleVertexShaderCode =
-                    "attribute vec4 aPosition;                                     \n" +
-                    "uniform mat4 transformationMatrix;                            \n" +
-                    "void main() {                                                 \n" +
-                    "   gl_Position = transformationMatrix*aPosition;            \n" +
-                    "}                                                             \n";
+                    "attribute vec4 aPosition;                                    " +
+                    "attribute vec3 normal;                                    " +
+                    "varying vec3 lightDir;                                    " +
+                    "varying vec3 N;                                            " +
+                    "uniform mat4 transformationMatrix;                           " +
+                    "const vec3 lightPos = vec3(0.5f, 0.0f, 0.0);                                             " +
+                    "const mat4 perspectiveMatrix = mat4(" +
+                            "1.1f, 0, 0, 0," +
+                            "0, 1.2f, 0, 0," +
+                            "0, 0, -1, -1," +
+                            "0, 0, -1f, 1" +
+                            ");" +
+                    "void main() {                                                " +
+                    "   N = normalize(mat3(transformationMatrix)*normal);             " +//normalize(mat3(transformationMatrix)*normal)
+                    "   vec4 tPosition = transformationMatrix*aPosition;" +
+                    "   lightDir = normalize(lightPos - tPosition);                               " +
+                    //"   normal = normalize(gl_NormalMatrix * gl_Normal);             " +
+                    //"   gl_Position = perspectiveMatrix*tPosition;           " +
+                    "   gl_Position = tPosition;           " +
+                    "}                                                            ";
 
     private final String _rectangleFragmentShaderCode =
-                    "void main() {                              \n"
-                    +   " gl_FragColor = vec4(1,1,1,1);         \n"
-                    +   "}                                      \n";
+                    "varying vec3 lightDir;                                    " +
+                    "varying vec3 N;" +
+                    "float diffuseSimple(vec3 L, vec3 N){" +
+                    "   return clamp(dot(L,N),0.0,1.0);" +
+                    "}                                    " +
+                    "void main() {                             " +
+                    "    float dist = length(lightDir);             " + //dot(lightDir,normalize(N)) (1.0f)/(1.0f + 0.5f*dist)
+                    //"    float intensity = 1.0f/(1.0f + 0.5f*dist);  " +
+                    "    float intensity = diffuseSimple(lightDir, N)/(1.0f + 0.5f*dist);" +
+                    //"    float intensity = dot(lightDir,N);    " +
+                    //"    intensity = floor(intensity*5.0f)/5.0f; " +
+                    "    vec4 col = vec4(intensity + 0.1f ,intensity + 0.1f , intensity + 0.25f, 1);             " +
+                    "    gl_FragColor = col;        " +
+                    //"    gl_FragColor = vec4(1, 1, 1, 1);        " +
+                    "}                                     ";
 
     private int loadShader(int type, String source)  {
         int shader = GLES20.glCreateShader(type);
         GLES20.glShaderSource(shader, source);
         GLES20.glCompileShader(shader);
         return shader;
-    }
-
-    private void applyTransform(Shape shape) {
-        final float RESOLUTION_Y = 1440;
-        final float RESOLUTION_X = 2560;
-        float x = shape.getX();
-        float y = shape.getY();
-        //System.out.println("FLAGHx: " + x + ", " + y);
-        int endIndex = shape.getVertexOffset()*DIMENSIONS + shape.getVertices().length;
-        for (int i = shape.getVertexOffset()*DIMENSIONS; i < endIndex; ++i) {
-            switch (i%DIMENSIONS) {
-                case 0:
-                    vertices[i] += x;
-                    vertices[i] = vertices[i] * 2 /RESOLUTION_X;
-                    break;
-                case 1:
-                    vertices[i] += y;
-                    vertices[i] = -vertices[i] * 2 /RESOLUTION_Y;
-                    break;
-            }
-        }
     }
 
     public void translate(Shape shape, float x, float y) {
