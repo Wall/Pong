@@ -26,11 +26,11 @@ public class Shape {
     protected float rotY;
     protected float rotZ;
 
-    private float[] transformationMatrix = new float[16];
-    private float[] bufferMatrix = new float[16];
-    private float[] resultMatrix = new float[16];
+    protected float[] transformationMatrix = new float[16];
+    protected float[] bufferMatrix = new float[16];
+    protected float[] resultMatrix = new float[16];
 
-    private static final float[] IDENTITY_MATRIX = new float [] {
+    protected static final float[] IDENTITY_MATRIX = new float [] {
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
@@ -40,9 +40,9 @@ public class Shape {
     static {
 
     }
-    final float RESOLUTION_Y = 1440;
-    final float RESOLUTION_X = 2560;
-    final float RESOLUTION_Z = 1440;
+    protected final float RESOLUTION_Y = 1440;
+    protected final float RESOLUTION_X = 1440;
+    protected final float RESOLUTION_Z = 1440;
 
     public Shape(float[] vertices, short[] indices, float[] normals) {
         this.vertices = vertices;
@@ -117,21 +117,30 @@ public class Shape {
 
         /*bufferMatrix[0] = (float) Math.cos(rotZ);
         bufferMatrix[5] = bufferMatrix[0];
-        bufferMatrix[4] = (float) Math.sin(rotZ);
-        bufferMatrix[1] = -bufferMatrix[1];
-        */
+        bufferMatrix[4] = (float) -Math.sin(rotZ);
+        bufferMatrix[1] = -bufferMatrix[4];*/
+
+
+        /*bufferMatrix[0] = (float) Math.cos(rotY);
+        bufferMatrix[10] = bufferMatrix[0];
+        bufferMatrix[2] = (float) Math.sin(rotY);
+        bufferMatrix[8] = -bufferMatrix[2];*/
+
+        bufferMatrix[5] = (float) Math.cos(rotX);
+        bufferMatrix[10] = bufferMatrix[5];
+        bufferMatrix[9] = (float) Math.sin(rotX);
+        bufferMatrix[6] = -bufferMatrix[9];
+
+        Matrix.multiplyMM(transformationMatrix, 0, bufferMatrix, 0, resultMatrix, 0);
+
+        System.arraycopy(IDENTITY_MATRIX, 0, bufferMatrix, 0, 16);
 
         bufferMatrix[0] = (float) Math.cos(rotY);
         bufferMatrix[10] = bufferMatrix[0];
         bufferMatrix[2] = (float) Math.sin(rotY);
         bufferMatrix[8] = -bufferMatrix[2];
 
-        /*bufferMatrix[5] = (float) Math.cos(rotX);
-        bufferMatrix[10] = bufferMatrix[5];
-        bufferMatrix[9] = (float) Math.sin(rotX);
-        bufferMatrix[6] = -bufferMatrix[9];*/
-
-        Matrix.multiplyMM(transformationMatrix, 0, bufferMatrix, 0, resultMatrix, 0);
+        Matrix.multiplyMM(resultMatrix, 0, bufferMatrix, 0, transformationMatrix, 0);
         //System.out.println(resultMatrix);\
         /*System.out.println("MAT");
         for (int i = 0; i < 16; ++i) {
@@ -140,7 +149,7 @@ public class Shape {
                 System.out.println();
             }
         }*/
-        return transformationMatrix;
+        return resultMatrix;
     }
 
 

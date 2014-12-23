@@ -1,5 +1,7 @@
 package com.bluewall.spinpong.UI;
 
+import android.opengl.Matrix;
+
 import com.bluewall.spinpong.gles.Shape;
 
 /**
@@ -11,6 +13,9 @@ public class Ball extends Shape {
 
     private float xspeed = 10;
     private float yspeed = 10;
+    private float u = 0;
+    private float v = 0;
+    private float rot = 0;
 
     private void init() {
         new Thread(new Runnable() {
@@ -18,8 +23,8 @@ public class Ball extends Shape {
             @Override
             public void run() {
                 while (true) {
-                    //x += xspeed;
-                    //y += yspeed;
+                    x += xspeed;
+                    y += yspeed;
 
                     if (x <= RADIUS - ScreenInfo.RES_X / 2 || x >= ScreenInfo.RES_X / 2 - RADIUS) {
                         xspeed *= -1;
@@ -27,9 +32,13 @@ public class Ball extends Shape {
                     if (y <= RADIUS - ScreenInfo.RES_Y / 2 || y >= ScreenInfo.RES_Y / 2 - RADIUS) {
                         yspeed *= -1;
                     }
-                    rotX += 0.1;
-                    rotY += 0.1;
-                    rotZ += 0.1;
+                    float m = (float) Math.sqrt(yspeed * yspeed + xspeed * xspeed);
+                    u = xspeed/m;
+                    v = yspeed/m;
+                    rot += 0.1;
+                    //rotX += 0.1;
+                    //rotY += 0.1;
+                    //rotZ += 0.1;
                     try {
                         Thread.sleep(30);
                     } catch (InterruptedException e) {
@@ -38,6 +47,43 @@ public class Ball extends Shape {
                 }
             }
         }).start();
+    }
+
+    @Override
+    public float[] genTransformationMatrix() {
+        System.arraycopy(IDENTITY_MATRIX, 0, bufferMatrix, 0, 16);
+        System.arraycopy(IDENTITY_MATRIX, 0, transformationMatrix, 0, 16);
+
+        float cos = (float) Math.cos(rot);
+        float sin = (float) Math.sin(rot);
+
+        transformationMatrix[0] = u*u + (1 - u*u)*cos;
+        transformationMatrix[1] = u*v*(1 - cos);
+        transformationMatrix[2] = v*sin;
+
+        transformationMatrix[4] = u*v*(1 - cos);
+        transformationMatrix[5] = v*v + (1 - v*v)*cos;
+        transformationMatrix[6] = -u*sin;
+
+        transformationMatrix[8] = -v*sin;
+        transformationMatrix[9] = u*sin;
+        transformationMatrix[10] = cos;
+
+
+        //mult(transformationMatrix, bufferMatrix);
+        Matrix.multiplyMM(resultMatrix, 0, bufferMatrix, 0, transformationMatrix, 0);
+        System.arraycopy(IDENTITY_MATRIX, 0, bufferMatrix, 0, 16);
+
+        bufferMatrix[12] += x * 2 / RESOLUTION_X;
+        bufferMatrix[13] -= y * 2 / RESOLUTION_Y;
+
+        Matrix.multiplyMM(transformationMatrix, 0, bufferMatrix, 0, resultMatrix, 0);
+
+        System.arraycopy(IDENTITY_MATRIX, 0, bufferMatrix, 0, 16);
+
+        Matrix.multiplyMM(resultMatrix, 0, bufferMatrix, 0, transformationMatrix, 0);
+
+        return resultMatrix;
     }
 
     public Ball() {

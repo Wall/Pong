@@ -2,6 +2,7 @@ package com.bluewall.spinpong.gles;
 
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.opengl.Matrix;
 
 import com.bluewall.spinpong.model.Vec2;
 
@@ -25,6 +26,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private int _rectangleAPositionLocation;
     private int normalLocation;
     private int transformationMatrixLocation;
+    private int mMVPMatrixHandle;
     private FloatBuffer vertexBuffer;
     private FloatBuffer normalBuffer;
     private ShortBuffer indexBuffer;
@@ -32,6 +34,9 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private float[] vertices = new float[] {};
     private float[] normals = new float[] {};
     private List<Shape> shapes = new ArrayList<>();
+    private float[] mProjectionMatrix = new float[16];
+    private float[] mViewMatrix = new float[16];
+    private float[] mMVPMatrix = new float[16];
 
 
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
@@ -46,10 +51,18 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         _rectangleAPositionLocation = GLES20.glGetAttribLocation(_rectangleProgram, "aPosition");
         normalLocation = GLES20.glGetAttribLocation(_rectangleProgram, "normal");
         transformationMatrixLocation = GLES20.glGetUniformLocation(_rectangleProgram, "transformationMatrix");
+        mMVPMatrixHandle = GLES20.glGetUniformLocation(_rectangleProgram, "uMVPMatrix");
     }
 
     public void onSurfaceChanged(GL10 gl, int width, int height) {
+        System.out.println("Flagh: " + width + ", " + height);
         gl.glViewport(0, 0, width, height);
+
+        float ratio = (float) width / height;
+
+        // this projection matrix is applied to object coordinates
+        // in the onDrawFrame() method
+        Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
     }
 
     public void onDrawFrame(GL10 gl) {
@@ -68,6 +81,13 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         //for (int i = 0; i < shapes.size(); ++i) {
             //applyTransform(shapes.get(i));
         //}
+        // Set the camera position (View matrix)
+        Matrix.setLookAtM(mViewMatrix, 0, 0, 0, -3, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+
+        // Calculate the projection and view transformation
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
+
+        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
 
         float[] mat = new float[] {
                 1, 0, 0, 0,
@@ -143,6 +163,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                     "varying vec3 lightDir;                                    " +
                     "varying vec3 N;                                            " +
                     "uniform mat4 transformationMatrix;                           " +
+                    "uniform mat4 uMVPMatrix;" +
                     "const vec3 lightPos = vec3(0.5f, 0.0f, 0.0);                                             " +
                     "const mat4 perspectiveMatrix = mat4(" +
                             "1.1f, 0, 0, 0," +
@@ -156,7 +177,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                     "   lightDir = normalize(lightPos - tPosition);                               " +
                     //"   normal = normalize(gl_NormalMatrix * gl_Normal);             " +
                     //"   gl_Position = perspectiveMatrix*tPosition;           " +
-                    "   gl_Position = tPosition;           " +
+                    "   gl_Position = uMVPMatrix*tPosition;           " +
                     "}                                                            ";
 
     private final String _rectangleFragmentShaderCode =
