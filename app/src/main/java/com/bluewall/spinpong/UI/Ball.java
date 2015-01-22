@@ -11,21 +11,28 @@ public class Ball extends Shape {
 
     private static final float RADIUS = 60f;
 
-    private float xspeed = 20;
-    private float yspeed = 5;
+    private static final int SPIN_EXAGGERATION = 5;
+
+    private float xspeed = 500;
+    private float yspeed = 300;
     private float u = 0;
     private float v = 0;
     private float rot = 0;
-
+    private float rotZ = 0;
+    private float spin = 0.8f;
+    private boolean isSpinning = true;
 
     private void init() {
         new Thread(new Runnable() {
 
             @Override
             public void run() {
+
+                final int SLEEP = 30;
+
                 while (true) {
-                    x += xspeed;
-                    y += yspeed;
+                    x += xspeed*SLEEP/1000;
+                    y += yspeed*SLEEP/1000;
 
                     if (x <= RADIUS - ScreenInfo.RES_X / 2 || x >= ScreenInfo.RES_X / 2 - RADIUS) {
                         xspeed *= -1;
@@ -37,11 +44,18 @@ public class Ball extends Shape {
                     u = -yspeed/m;
                     v = -xspeed/m;
                     rot += 0.1;
-                    //rotX += 0.1;
-                    //rotY += 0.1;
-                    //rotZ += 0.1;
+
+
+                    rotZ += SPIN_EXAGGERATION*spin*SLEEP/1000;
+
+                    float xspeedTemp = (float) (xspeed*Math.cos(spin*SLEEP/1000) + yspeed*Math.sin(spin*SLEEP/1000));
+                    float yspeedTemp = (float) (-xspeed*Math.sin(spin*SLEEP/1000) + yspeed*Math.cos(spin*SLEEP/1000));
+
+                    xspeed = xspeedTemp;
+                    yspeed = yspeedTemp;
+
                     try {
-                        Thread.sleep(30);
+                        Thread.sleep(SLEEP);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -52,35 +66,33 @@ public class Ball extends Shape {
 
     @Override
     public float[] genTransformationMatrix() {
+
         System.arraycopy(IDENTITY_MATRIX, 0, bufferMatrix, 0, 16);
         System.arraycopy(IDENTITY_MATRIX, 0, transformationMatrix, 0, 16);
+        if (isSpinning) {
+            transformationMatrix[0] = (float) Math.cos(rotZ);
+            transformationMatrix[5] = transformationMatrix[0];
+            transformationMatrix[4] = (float) -Math.sin(rotZ);
+            transformationMatrix[1] = -transformationMatrix[4];
+        } else {
+           float cos = (float) Math.cos(rot);
+           float sin = (float) Math.sin(rot);
 
-        float cos = (float) Math.cos(rot);
-        float sin = (float) Math.sin(rot);
+           transformationMatrix[0] = u * u + (1 - u * u) * cos;
+           transformationMatrix[1] = u * v * (1 - cos);
+           transformationMatrix[2] = v * sin;
 
-        transformationMatrix[0] = u*u + (1 - u*u)*cos;
-        transformationMatrix[1] = u*v*(1 - cos);
-        transformationMatrix[2] = v*sin;
+           transformationMatrix[4] = u * v * (1 - cos);
+           transformationMatrix[5] = v * v + (1 - v * v) * cos;
+           transformationMatrix[6] = -u * sin;
 
-        transformationMatrix[4] = u*v*(1 - cos);
-        transformationMatrix[5] = v*v + (1 - v*v)*cos;
-        transformationMatrix[6] = -u*sin;
-
-        transformationMatrix[8] = -v*sin;
-        transformationMatrix[9] = u*sin;
-        transformationMatrix[10] = cos;
-
-
-        //mult(transformationMatrix, bufferMatrix);
-        Matrix.multiplyMM(resultMatrix, 0, bufferMatrix, 0, transformationMatrix, 0);
-        System.arraycopy(IDENTITY_MATRIX, 0, bufferMatrix, 0, 16);
+           transformationMatrix[8] = -v * sin;
+           transformationMatrix[9] = u * sin;
+           transformationMatrix[10] = cos;
+        }
 
         bufferMatrix[12] += x * 2 / RESOLUTION_X;
         bufferMatrix[13] -= y * 2 / RESOLUTION_Y;
-
-        Matrix.multiplyMM(transformationMatrix, 0, bufferMatrix, 0, resultMatrix, 0);
-
-        System.arraycopy(IDENTITY_MATRIX, 0, bufferMatrix, 0, 16);
 
         Matrix.multiplyMM(resultMatrix, 0, bufferMatrix, 0, transformationMatrix, 0);
 
