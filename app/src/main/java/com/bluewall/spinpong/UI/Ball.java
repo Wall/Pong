@@ -11,10 +11,14 @@ public class Ball extends Shape {
 
     private static final float RADIUS = 60f;
 
-    private static final int SPIN_EXAGGERATION = 5;
+    private static final int SPIN_ANIMATION_EXAGGERATION = 8;
+    private static final int COLLISION_SPIN_EXAGGERATION = 40;
+    private static final float SPIN_DECAY = 0.1f;
+    private static final float SPIN_ROLLING_DECAY = 4*SPIN_DECAY;
+    private static final float SPIN_ANIMATION_THRESHOLD = 0.2f;
 
-    private float xspeed = 500;
-    private float yspeed = 300;
+    private float xspeed = 700;
+    private float yspeed = 400;
     private float u = 0;
     private float v = 0;
     private float rot = 0;
@@ -23,37 +27,54 @@ public class Ball extends Shape {
     private boolean isSpinning = true;
 
     private void init() {
+
+
         new Thread(new Runnable() {
 
+            private long clock = System.currentTimeMillis();
+            private float scale;
             @Override
             public void run() {
 
                 final int SLEEP = 30;
 
                 while (true) {
-                    x += xspeed*SLEEP/1000;
-                    y += yspeed*SLEEP/1000;
+                    long time = System.currentTimeMillis();
+                    scale = ((float) (time - clock))/1000;
+                    clock = time;
 
-                    if (x <= RADIUS - ScreenInfo.RES_X / 2 || x >= ScreenInfo.RES_X / 2 - RADIUS) {
-                        xspeed *= -1;
+                    isSpinning = spin > SPIN_ANIMATION_THRESHOLD;
+
+                    x += xspeed*scale;
+                    y += yspeed*scale;
+                    //LEFT WALL
+                    if (x <= RADIUS - ScreenInfo.RES_X / 2) {
+                        collision();
+                        xspeed = Math.abs(xspeed);
                     }
-                    if (y <= RADIUS - ScreenInfo.RES_Y / 2 || y >= ScreenInfo.RES_Y / 2 - RADIUS) {
-                        yspeed *= -1;
+                    //RIGHT WALL
+                    else if (x >= ScreenInfo.RES_X / 2 - RADIUS) {
+                        collision();
+                        xspeed = -Math.abs(xspeed);
+                    }
+                    //TOP WALL
+                    if (y <= RADIUS - ScreenInfo.RES_Y / 2) {
+                        collision();
+                        yspeed = Math.abs(yspeed);
+                    }
+                    //BOTTOM WALL
+                    else if (y >= ScreenInfo.RES_Y / 2 - RADIUS) {
+                        collision();
+                        yspeed = -Math.abs(yspeed);
                     }
                     float m = (float) Math.sqrt(yspeed * yspeed + xspeed * xspeed);
                     u = -yspeed/m;
                     v = -xspeed/m;
                     rot += 0.1;
+                    rotZ += SPIN_ANIMATION_EXAGGERATION*spin*scale;
 
-
-                    rotZ += SPIN_EXAGGERATION*spin*SLEEP/1000;
-
-                    float xspeedTemp = (float) (xspeed*Math.cos(spin*SLEEP/1000) + yspeed*Math.sin(spin*SLEEP/1000));
-                    float yspeedTemp = (float) (-xspeed*Math.sin(spin*SLEEP/1000) + yspeed*Math.cos(spin*SLEEP/1000));
-
-                    xspeed = xspeedTemp;
-                    yspeed = yspeedTemp;
-
+                    rotate(spin);
+                    spin *= (1 - (isSpinning ? SPIN_DECAY : SPIN_ROLLING_DECAY)*scale);
                     try {
                         Thread.sleep(SLEEP);
                     } catch (InterruptedException e) {
@@ -61,8 +82,24 @@ public class Ball extends Shape {
                     }
                 }
             }
+
+            private void rotate(float angle) {
+                float xspeedTemp = (float) (xspeed*Math.cos(angle*scale) + yspeed*Math.sin(angle*scale));
+                float yspeedTemp = (float) (-xspeed*Math.sin(angle*scale) + yspeed*Math.cos(angle*scale));
+
+                xspeed = xspeedTemp;
+                yspeed = yspeedTemp;
+            }
+
+            private void collision() {
+                spin *= (1 - SPIN_ROLLING_DECAY*scale);
+                rotate(-COLLISION_SPIN_EXAGGERATION*spin);
+            }
+
         }).start();
     }
+
+
 
     @Override
     public float[] genTransformationMatrix() {

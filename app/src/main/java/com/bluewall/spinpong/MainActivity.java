@@ -94,7 +94,7 @@ public class MainActivity extends Activity {
                 public boolean onTouch(MotionEvent event) {
                     //if (event.getAction() == MotionEvent.ACTION_MOVE) {
                         //System.out.println("DOWN: " + event.getRawX() + ", " + event.getRawY());
-                        pad.set(-event.getRawX() + ScreenInfo.RES_X/2 + 250, event.getRawY() - ScreenInfo.RES_Y/2);
+                        pad.set(-event.getRawX() + ScreenInfo.RES_X/2, event.getRawY() - ScreenInfo.RES_Y/2);
                     //}
                     return true;
                 }
