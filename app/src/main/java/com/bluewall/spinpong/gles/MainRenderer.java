@@ -162,6 +162,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                     "attribute vec3 normal;                                    " +
                     "varying vec3 lightDir;                                    " +
                     "varying vec3 N;                                            " +
+                    "varying vec4 tPosition;" +
                     "uniform mat4 transformationMatrix;                           " +
                     "uniform mat4 uMVPMatrix;" +
                     "const vec3 lightPos = vec3(0.5f, 0.0f, 0.0);                                             " +
@@ -173,7 +174,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                             ");" +
                     "void main() {                                                " +
                     "   N = normalize(mat3(transformationMatrix)*normal);             " +//normalize(mat3(transformationMatrix)*normal)
-                    "   vec4 tPosition = transformationMatrix*aPosition;" +
+                    "   tPosition = transformationMatrix*aPosition;" +
                     "   lightDir = normalize(lightPos - tPosition);                               " +
                     //"   normal = normalize(gl_NormalMatrix * gl_Normal);             " +
                     //"   gl_Position = perspectiveMatrix*tPosition;           " +
@@ -183,16 +184,22 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private final String _rectangleFragmentShaderCode =
                     "varying vec3 lightDir;                                    " +
                     "varying vec3 N;" +
+                    "varying vec4 tPosition;" +
+                    "const vec3 lightPos = vec3(0.5f, 0.0f, 0.0);" +
                     "float diffuseSimple(vec3 L, vec3 N){" +
                     "   return clamp(dot(L,N),0.0,1.0);" +
                     "}                                    " +
                     "void main() {                             " +
                     "    float dist = length(lightDir);             " + //dot(lightDir,normalize(N)) (1.0f)/(1.0f + 0.5f*dist)
                     //"    float intensity = 1.0f/(1.0f + 0.5f*dist);  " +
-                    "    float intensity = diffuseSimple(lightDir, N)/(1.0f + 0.5f*dist);" +
+                    "    float intensity = diffuseSimple(lightDir, N)/(1.0f + 0.3f*dist);" +
+                    //"    vec3 L = normalize(lightPos.xyz - tPosition.xyz);" +
+                    //"    vec4 Idiff = vec4(1.0, 1.0, 1.0, 1.0)*max(dot(N,L), 0.0);" +
+                            //"   Idiff = clamp(Idiff, 0.0, 1.0);" +
+                            //"   gl_FragColor = Idiff;" +
                     //"    float intensity = dot(lightDir,N);    " +
                     //"    intensity = floor(intensity*5.0f)/5.0f; " +
-                    "    vec4 col = vec4(intensity + 0.1f ,intensity + 0.1f , intensity + 0.25f, 1);             " +
+                    "    vec4 col = vec4(intensity + 0.15f ,intensity + 0.2f , intensity + 0.45f, 1);             " +
                     "    gl_FragColor = col;        " +
                     //"    gl_FragColor = vec4(1, 1, 1, 1);        " +
                     "}                                     ";
