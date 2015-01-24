@@ -41,14 +41,14 @@ public class MainActivity extends Activity {
 
         boolean supportsES2 = (info.reqGlEsVersion >= 0x20000);
         if (supportsES2) {
-            MainRenderer mainRenderer = new MainRenderer();
+            MainRenderer mainRenderer = new MainRenderer(getApplicationContext());
 
             MainSurfaceView mainSurfaceView = new MainSurfaceView(this);
             mainSurfaceView.setEGLContextClientVersion(2);
             mainSurfaceView.setRenderer(mainRenderer);
             this.setContentView(mainSurfaceView);
 
-            Shape.setMainRenderer(mainRenderer);
+            //mainRenderer.loadTexture(getApplicationContext(), R.drawable.basic_texture);
 
             final Shape shape = new Shape(new float[] {
                     -50, 0, 0,
@@ -66,7 +66,7 @@ public class MainActivity extends Activity {
                     });*/
             final Pad pad = new Pad();
             final Ball ball = new Ball();
-
+            ball.setPad(pad);
             //mainRenderer.add(shape2);
             mainRenderer.add(shape);
             mainRenderer.add(pad);

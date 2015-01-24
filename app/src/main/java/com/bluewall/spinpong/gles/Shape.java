@@ -18,10 +18,9 @@ public class Shape {
     private float[] normals;
     private int vertexOffset;
     private ShortBuffer indexBuffer;
-    private static MainRenderer mainRenderer;
 
-    protected float x;
-    protected float y;
+    protected float x = 0;
+    protected float y = 0;
 
     protected float[] transformationMatrix = new float[16];
     protected float[] bufferMatrix = new float[16];
@@ -55,10 +54,6 @@ public class Shape {
         }
     }
 
-    public static void setMainRenderer(MainRenderer renderer) {
-        mainRenderer = renderer;
-    }
-
     public void set(float x, float y) {
         this.x = x;
         this.y = y;
@@ -73,9 +68,6 @@ public class Shape {
     public float getY() {
         return y;
     }
-    /*public void translate(float x, float y) {
-        mainRenderer.translate(this, x, y);
-    }*/
 
     public float[] getVertices() {
         return vertices;

@@ -1,9 +1,14 @@
 package com.bluewall.spinpong.gles;
 
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.opengl.GLUtils;
 import android.opengl.Matrix;
 
+import com.bluewall.spinpong.R;
 import com.bluewall.spinpong.model.Vec2;
 
 import java.nio.ByteBuffer;
@@ -22,7 +27,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class MainRenderer implements GLSurfaceView.Renderer {
 
     public static int DIMENSIONS = 3;
-    private int _rectangleProgram;
+    private int mProgramHandle;
     private int _rectangleAPositionLocation;
     private int normalLocation;
     private int transformationMatrixLocation;
@@ -38,20 +43,33 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     private float[] mViewMatrix = new float[16];
     private float[] mMVPMatrix = new float[16];
 
+    private Context context;
+    private int mTextureUniformHandle;
+    private int mTextureCoordinateHandle;
+    private int mTextureDataHandle;
+
+    public MainRenderer(Context context) {
+        this.context = context;
+    }
 
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         gl.glClearColor(0.0f, 0.0f, 0.0f, 1);
         //initShapes();
         int _rectangleVertexShader = loadShader(GLES20.GL_VERTEX_SHADER, _rectangleVertexShaderCode);
         int _rectangleFragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, _rectangleFragmentShaderCode);
-        _rectangleProgram = GLES20.glCreateProgram();
-        GLES20.glAttachShader(_rectangleProgram, _rectangleVertexShader);
-        GLES20.glAttachShader(_rectangleProgram, _rectangleFragmentShader);
-        GLES20.glLinkProgram(_rectangleProgram);
-        _rectangleAPositionLocation = GLES20.glGetAttribLocation(_rectangleProgram, "aPosition");
-        normalLocation = GLES20.glGetAttribLocation(_rectangleProgram, "normal");
-        transformationMatrixLocation = GLES20.glGetUniformLocation(_rectangleProgram, "transformationMatrix");
-        mMVPMatrixHandle = GLES20.glGetUniformLocation(_rectangleProgram, "uMVPMatrix");
+        mProgramHandle = GLES20.glCreateProgram();
+        GLES20.glAttachShader(mProgramHandle, _rectangleVertexShader);
+        GLES20.glAttachShader(mProgramHandle, _rectangleFragmentShader);
+        GLES20.glLinkProgram(mProgramHandle);
+        _rectangleAPositionLocation = GLES20.glGetAttribLocation(mProgramHandle, "aPosition");
+        normalLocation = GLES20.glGetAttribLocation(mProgramHandle, "normal");
+        transformationMatrixLocation = GLES20.glGetUniformLocation(mProgramHandle, "transformationMatrix");
+        mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgramHandle, "uMVPMatrix");
+        mTextureUniformHandle = GLES20.glGetUniformLocation(mProgramHandle, "u_Texture");
+        mTextureCoordinateHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_TexCoordinate");
+
+        // Load the texture
+        mTextureDataHandle = loadTexture(context, R.drawable.basic_texture);
     }
 
     public void onSurfaceChanged(GL10 gl, int width, int height) {
@@ -61,17 +79,20 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
         // this projection matrix is applied to object coordinates
         // in the onDrawFrame() method
-        Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 2.85f, 7);
+        Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
+        //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 2.85f, 7);
     }
 
     public void onDrawFrame(GL10 gl) {
         gl.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
-        GLES20.glUseProgram(_rectangleProgram);
+        GLES20.glUseProgram(mProgramHandle);
         GLES20.glVertexAttribPointer(_rectangleAPositionLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, vertexBuffer);
         GLES20.glEnableVertexAttribArray(_rectangleAPositionLocation);
         GLES20.glVertexAttribPointer(normalLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, normalBuffer);
         GLES20.glEnableVertexAttribArray(normalLocation);
+        GLES20.glVertexAttribPointer(mTextureCoordinateHandle, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, normalBuffer);
+        GLES20.glEnableVertexAttribArray(mTextureCoordinateHandle);
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
         //GLES20.glVertexAttribPointer(normalLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, normalBuffer);
         //GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
@@ -81,6 +102,17 @@ public class MainRenderer implements GLSurfaceView.Renderer {
             //applyTransform(shapes.get(i));
         //}
         // Set the camera position (View matrix)
+
+
+        // Set the active texture unit to texture unit 0.
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+
+        // Bind the texture to this unit.
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
+
+        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
+        GLES20.glUniform1i(mTextureUniformHandle, 0);
+
         Matrix.setLookAtM(mViewMatrix, 0, 0, 0, -3, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
 
         // Calculate the projection and view transformation
@@ -152,10 +184,12 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
     private final String _rectangleVertexShaderCode =
                     "attribute vec4 aPosition;                                    " +
-                    "attribute vec3 normal;                                    " +
+                    "attribute vec3 normal; " +
+                    "attribute vec2 a_TexCoordinate;                                   " +
                     "varying vec3 lightDir;                                    " +
                     "varying vec3 N;                                            " +
                     "varying vec4 tPosition;" +
+                    "varying vec2 v_TexCoordinate;" +
                     "uniform mat4 transformationMatrix;                           " +
                     "uniform mat4 uMVPMatrix;" +
                     "const vec3 lightPos = vec3(0.5f, 0.0f, 0.0);                                             " +
@@ -168,7 +202,8 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                     "void main() {                                                " +
                     "   N = normalize(mat3(transformationMatrix)*normal);             " +//normalize(mat3(transformationMatrix)*normal)
                     "   tPosition = transformationMatrix*aPosition;" +
-                    "   lightDir = normalize(lightPos - tPosition);                               " +
+                    "   lightDir = normalize(lightPos - tPosition); " +
+                    "   v_TexCoordinate = a_TexCoordinate;                              " +
                     //"   normal = normalize(gl_NormalMatrix * gl_Normal);             " +
                     //"   gl_Position = perspectiveMatrix*tPosition;           " +
                     "   gl_Position = uMVPMatrix*tPosition;           " +
@@ -178,6 +213,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                     "varying vec3 lightDir;                                    " +
                     "varying vec3 N;" +
                     "varying vec4 tPosition;" +
+                    "uniform sampler2D u_Texture;" +
                     "const vec3 lightPos = vec3(0.5f, 0.0f, 0.0);" +
                     "float diffuseSimple(vec3 L, vec3 N){" +
                     "   return clamp(dot(L,N),0.0,1.0);" +
@@ -194,6 +230,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                     //"    intensity = floor(intensity*5.0f)/5.0f; " +
                     "    vec4 col = vec4(intensity + 0.15f ,intensity + 0.2f , intensity + 0.45f, 1);             " +
                     "    gl_FragColor = col;        " +
+                    //"    gl_FragColor = col* texture2D(u_Texture, v_TexCoordinate);        " +
                     //"    gl_FragColor = vec4(1, 1, 1, 1);        " +
                     "}                                     ";
 
@@ -204,10 +241,38 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         return shader;
     }
 
-    public void translate(Shape shape, float x, float y) {
-        int endIndex = shape.getVertexOffset()*DIMENSIONS + shape.getVertices().length;
-        for (int i = shape.getVertexOffset()*DIMENSIONS; i < endIndex; ++i) {
-            vertices[i] += i%2 == 0 ? x : y;
+    public int loadTexture(final Context context, final int resourceId)
+    {
+        final int[] textureHandle = new int[1];
+
+        GLES20.glGenTextures(1, textureHandle, 0);
+        if (textureHandle[0] != 0)
+        {
+            final BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inScaled = false;   // No pre-scaling
+
+            // Read in the resource
+            final Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), resourceId, options);
+
+            // Bind to the texture in OpenGL
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle[0]);
+
+            // Set filtering
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+
+            // Load the bitmap into the bound texture.
+            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+
+            // Recycle the bitmap, since its data has been loaded into OpenGL.
+            bitmap.recycle();
         }
+
+        if (textureHandle[0] == 0)
+        {
+            throw new RuntimeException("Error loading texture.");
+        }
+
+        return textureHandle[0];
     }
 }

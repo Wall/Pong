@@ -11,76 +11,171 @@ public class Ball extends Shape {
 
     private static final float RADIUS = 60f;
 
-    private static final int SPIN_ANIMATION_EXAGGERATION = 8;
-    private static final int COLLISION_SPIN_EXAGGERATION = 40;
-    private static final float SPIN_DECAY = 0.1f;
+    /* Increases spin rate with regards to animation */
+    private static final int SPIN_ANIMATION_EXAGGERATION = 6;
+    /* Determines how much spin affects direction of ball upon hitting a wall */
+    private static final int COLLISION_SPIN_EXAGGERATION = 15;
+    /* Loss of speed upon hitting a wall */
+    private static final float SPEED_DECAY = 0.96f;
+    /* Affects how hard the pad can hit the ball */
+    private static final float SPEED_ONHIT = 0.1f;
+    /* Rate at which spin is lost per frame */
+    private static final float SPIN_DECAY = 0.4f;
+    /* Spin decays faster when rolling */
     private static final float SPIN_ROLLING_DECAY = 4*SPIN_DECAY;
-    private static final float SPIN_ANIMATION_THRESHOLD = 0.2f;
+    /* Level of spin at which ball transitions from spinning to rolling and visa versa */
+    private static final float SPIN_ANIMATION_THRESHOLD = 0.4f;
+    /* Affects how hard the pad can spin the ball */
+    private static final float SPIN_ONHIT = 0.4f;
+    /* How many frames are interpolated during the collision detection process */
+    private static final int INTERPOLATION_NUMBER = 16;
+    /* Determines size of bounding field,
+     * collision detection calculations are skipped if ball is outside of pads bounding field */
+    private static final int BOUNDING_COLLISION_SIZE = 4;
 
-    private float xspeed = 700;
+    /////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////
+
+    /* Current x and y velocity */
+    private float xspeed = 900;
     private float yspeed = 400;
+    /* Vector [u, v] the direction in which the ball is rolling */
     private float u = 0;
     private float v = 0;
+    /* Current rotation about the vector [u, v] (state of rotation regarding roll) */
     private float rot = 0;
+    /* Current rotation about the z-axis (state of rotation regarding spin) */
     private float rotZ = 0;
-    private float spin = 0.8f;
-    private boolean isSpinning = true;
+    /* Rate at which ball is spinning in radians per second */
+    private float spin = 0.0f;
+    private boolean isSpinning = false;
+
+    private Pad pad;
 
     private void init() {
 
-
         new Thread(new Runnable() {
 
-            private long clock = System.currentTimeMillis();
+            private static final int SLEEP = 15;
+            private long clock = System.currentTimeMillis() - SLEEP;
             private float scale;
+            private float lastX, lastY;
+            private float lastPadX, lastPadY;
+            private boolean hadCollided = false;
+            private float maxSpeed;
+
             @Override
             public void run() {
 
-                final int SLEEP = 30;
+                while (pad == null);
 
                 while (true) {
-                    long time = System.currentTimeMillis();
-                    scale = ((float) (time - clock))/1000;
-                    clock = time;
+                    setClockAndScale();
+                    updatePosition();
+                    checkCollision();
+                    updateOpenGLData();
+                    setPreviousFrameData();
 
-                    isSpinning = spin > SPIN_ANIMATION_THRESHOLD;
-
-                    x += xspeed*scale;
-                    y += yspeed*scale;
-                    //LEFT WALL
-                    if (x <= RADIUS - ScreenInfo.RES_X / 2) {
-                        collision();
-                        xspeed = Math.abs(xspeed);
-                    }
-                    //RIGHT WALL
-                    else if (x >= ScreenInfo.RES_X / 2 - RADIUS) {
-                        collision();
-                        xspeed = -Math.abs(xspeed);
-                    }
-                    //TOP WALL
-                    if (y <= RADIUS - ScreenInfo.RES_Y / 2) {
-                        collision();
-                        yspeed = Math.abs(yspeed);
-                    }
-                    //BOTTOM WALL
-                    else if (y >= ScreenInfo.RES_Y / 2 - RADIUS) {
-                        collision();
-                        yspeed = -Math.abs(yspeed);
-                    }
-                    float m = (float) Math.sqrt(yspeed * yspeed + xspeed * xspeed);
-                    u = -yspeed/m;
-                    v = -xspeed/m;
-                    rot += 0.1;
-                    rotZ += SPIN_ANIMATION_EXAGGERATION*spin*scale;
-
-                    rotate(spin);
-                    spin *= (1 - (isSpinning ? SPIN_DECAY : SPIN_ROLLING_DECAY)*scale);
                     try {
                         Thread.sleep(SLEEP);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
+            }
+
+            private void checkCollision() {
+                //LEFT WALL
+                if (x <= RADIUS - ScreenInfo.RES_X / 2) {
+                    collision();
+                    xspeed = Math.abs(xspeed);
+                }
+                //RIGHT WALL
+                else if (x >= ScreenInfo.RES_X / 2 - RADIUS) {
+                    collision();
+                    xspeed = -Math.abs(xspeed);
+                }
+                //TOP WALL
+                if (y <= RADIUS - ScreenInfo.RES_Y / 2) {
+                    collision();
+                    yspeed = Math.abs(yspeed);
+                }
+                //BOTTOM WALL
+                else if (y >= ScreenInfo.RES_Y / 2 - RADIUS) {
+                    collision();
+                    yspeed = -Math.abs(yspeed);
+                }
+                //Checks if pad and ball are in the near vicinity of each other
+                if (Math.abs(pad.getX() - x) + Math.abs(pad.getY() - y) <= BOUNDING_COLLISION_SIZE*(Pad.HEIGHT/2 + Pad.WIDTH/2 + 2*RADIUS)) {
+                    boolean hit = false;
+                    if (intersects()) {
+                        bpCollision();
+                        hit = true;
+                    } else {
+                        float stepX = (x - lastX) / INTERPOLATION_NUMBER;
+                        float stepY = (y - lastY) / INTERPOLATION_NUMBER;
+                        float stepPadX = (pad.getX() - lastPadX) / INTERPOLATION_NUMBER;
+                        float stepPadY = (pad.getY() - lastPadY) / INTERPOLATION_NUMBER;
+                        for (int i = 1; i <= INTERPOLATION_NUMBER; ++i) {
+                            if (intersects(lastX + stepX * i, lastY + stepY * i, lastPadX + stepPadX * i, lastPadY + stepPadY * i)) {
+                                bpCollision();
+                                hit = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!hit) {
+                        if (hadCollided) {
+                            xspeed = -maxSpeed;
+                        }
+                        hadCollided = false;
+                    }
+                }
+            }
+
+            private void setPreviousFrameData() {
+                lastX = x;
+                lastY = y;
+                lastPadX = pad.getX();
+                lastPadY = pad.getY();
+            }
+
+            private void setClockAndScale() {
+                long time = System.currentTimeMillis();
+                scale = ((float) (time - clock))/1000;
+                clock = time;
+            }
+
+            private void updatePosition() {
+                x += xspeed*scale;
+                y += yspeed*scale;
+
+                rot += 0.1;
+                rotZ += SPIN_ANIMATION_EXAGGERATION*spin*scale;
+
+                rotate(spin);
+                spin *= (1 - (isSpinning ? SPIN_DECAY : SPIN_ROLLING_DECAY)*scale);
+            }
+
+            private void updateOpenGLData() {
+                float m = (float) Math.sqrt(yspeed * yspeed + xspeed * xspeed);
+                u = -yspeed/m;
+                v = -xspeed/m;
+                isSpinning = spin > SPIN_ANIMATION_THRESHOLD;
+            }
+
+            private void bpCollision() {
+                int side = lastX < lastPadX ? -1 : 1;
+                float sumX = side*((x - lastX) - (pad.getX() - lastPadX) * SPEED_ONHIT) / scale;
+
+                spin += (pad.getY() - lastPadY) * scale * SPIN_ONHIT;
+                collision();
+                xspeed = -sumX;
+                x = (RADIUS + Pad.WIDTH)*side + pad.getX();
+
+                maxSpeed = hadCollided ? Math.abs(maxSpeed) > Math.abs(sumX) ? maxSpeed : sumX : sumX;
+                hadCollided = true;
             }
 
             private void rotate(float angle) {
@@ -92,14 +187,51 @@ public class Ball extends Shape {
             }
 
             private void collision() {
+                xspeed *= SPEED_DECAY;
+                yspeed *= SPEED_DECAY;
+
                 spin *= (1 - SPIN_ROLLING_DECAY*scale);
                 rotate(-COLLISION_SPIN_EXAGGERATION*spin);
+            }
+
+            private boolean intersects() {
+                float cdx = Math.abs(x - pad.getX());
+                float cdy = Math.abs(y - pad.getY());
+
+                if (cdx > (Pad.WIDTH/2 + RADIUS)) { return false; }
+                if (cdy > (Pad.HEIGHT/2 + RADIUS)) { return false; }
+
+                if (cdx <= (Pad.WIDTH/2)) { return true; }
+                if (cdy <= (Pad.HEIGHT/2)) { return true; }
+
+                float cdsq = (cdx - Pad.WIDTH/2)*(cdx - Pad.WIDTH/2) +
+                        (cdy - Pad.HEIGHT/2)*(cdy - Pad.HEIGHT/2);
+
+                return cdsq <= RADIUS*RADIUS;
+            }
+
+            private boolean intersects(float x1, float y1, float x2, float y2) {
+                float cdx = Math.abs(x1 - x2);
+                float cdy = Math.abs(y1 - y2);
+
+                if (cdx > (Pad.WIDTH/2 + RADIUS)) { return false; }
+                if (cdy > (Pad.HEIGHT/2 + RADIUS)) { return false; }
+
+                if (cdx <= (Pad.WIDTH/2)) { return true; }
+                if (cdy <= (Pad.HEIGHT/2)) { return true; }
+
+                float cdsq = (cdx - Pad.WIDTH/2)*(cdx - Pad.WIDTH/2) +
+                        (cdy - Pad.HEIGHT/2)*(cdy - Pad.HEIGHT/2);
+
+                return cdsq <= RADIUS*RADIUS;
             }
 
         }).start();
     }
 
-
+    public void setPad(Pad pad) {
+        this.pad = pad;
+    }
 
     @Override
     public float[] genTransformationMatrix() {
