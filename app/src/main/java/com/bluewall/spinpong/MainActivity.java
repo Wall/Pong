@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -19,6 +18,7 @@ import com.google.android.gms.games.Games;
 import com.google.android.gms.games.GamesStatusCodes;
 import com.google.android.gms.games.multiplayer.Invitation;
 import com.google.android.gms.games.multiplayer.Multiplayer;
+import com.google.android.gms.games.multiplayer.OnInvitationReceivedListener;
 import com.google.android.gms.games.multiplayer.Participant;
 import com.google.android.gms.games.multiplayer.realtime.RealTimeMessage;
 import com.google.android.gms.games.multiplayer.realtime.RealTimeMessageReceivedListener;
@@ -36,7 +36,7 @@ import java.util.List;
 /**
  * Created by david on 12/13/14.
  */
-public class MainActivity extends Activity implements RoomUpdateListener, RealTimeMessageReceivedListener, RoomStatusUpdateListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class MainActivity extends Activity implements RoomUpdateListener, RealTimeMessageReceivedListener, RoomStatusUpdateListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, OnInvitationReceivedListener {
 
     private static final int RC_SELECT_PLAYERS = 2;
     private GoogleApiClient mGoogleApiClient;
@@ -368,17 +368,7 @@ public class MainActivity extends Activity implements RoomUpdateListener, RealTi
         //startActivityForResult(intent, RC_SELECT_PLAYERS);
         Games.Invitations.registerInvitationListener(mGoogleApiClient, this);
 
-        if (connectionHint != null) {
-            Log.d(TAG, "onConnected: connection hint provided. Checking for invite.");
-            Invitation inv = connectionHint
-                    .getParcelable(Multiplayer.EXTRA_INVITATION);
-            if (inv != null && inv.getInvitationId() != null) {
-                // retrieve and cache the invitation ID
-                Log.d(TAG,"onConnected: connection hint has a room invite!");
-                acceptInviteToRoom(inv.getInvitationId());
-                return;
-            }
-        }
+
     }
 
     @Override
@@ -389,5 +379,15 @@ public class MainActivity extends Activity implements RoomUpdateListener, RealTi
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         System.out.println("GOOoGLE:ONCONNECTIONFAILED");
+    }
+
+    @Override
+    public void onInvitationReceived(Invitation invitation) {
+        System.out.println("GOOoGLE:ONIRE");
+    }
+
+    @Override
+    public void onInvitationRemoved(String s) {
+        System.out.println("GOOoGLE:ONIRERE");
     }
 }
