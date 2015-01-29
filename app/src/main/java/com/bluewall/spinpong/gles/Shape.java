@@ -1,12 +1,9 @@
 package com.bluewall.spinpong.gles;
 
-import android.opengl.Matrix;
-
-import com.bluewall.spinpong.model.Vec2;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
+
 
 /**
  * Created by david on 12/13/14.
