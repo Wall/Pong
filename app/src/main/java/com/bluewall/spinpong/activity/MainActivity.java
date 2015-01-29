@@ -1,17 +1,17 @@
-package com.bluewall.spinpong;
+package com.bluewall.spinpong.activity;
 
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ConfigurationInfo;
+import android.content.res.Configuration;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageView;
 
-import com.bluewall.spinpong.UI.ScreenInfo;
+import com.bluewall.spinpong.R;
+import com.bluewall.spinpong.View.OnReleaseListener;
+import com.bluewall.spinpong.View.ReleaseImageButton;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.games.Games;
@@ -38,6 +38,10 @@ import java.util.List;
  */
 public class MainActivity extends Activity implements RoomUpdateListener, RealTimeMessageReceivedListener, RoomStatusUpdateListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, OnInvitationReceivedListener {
 
+    private ImageView background;
+    private ReleaseImageButton buttonSinglePlayer;
+    private ReleaseImageButton buttonMultiPlayer;
+
     private static final int RC_SELECT_PLAYERS = 2;
     private GoogleApiClient mGoogleApiClient;
     private String mRoomId;
@@ -53,17 +57,24 @@ public class MainActivity extends Activity implements RoomUpdateListener, RealTi
 
         setContentView(R.layout.activity_main);
 
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        WindowManager wm = (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE); // the results will be higher than using the activity context object or the getWindowManager() shortcut
-        wm.getDefaultDisplay().getMetrics(displayMetrics);
-        //final int screenWidth = displayMetrics.widthPixels;
-        //final int screenHeight = displayMetrics.heightPixels;
+        background = (ImageView) findViewById(R.id.background);
+        setBackgroundImage(getResources().getConfiguration().orientation);
 
-        ScreenInfo.RES_X = displayMetrics.widthPixels;
-        ScreenInfo.RES_Y = displayMetrics.heightPixels;
+        buttonSinglePlayer = (ReleaseImageButton) findViewById(R.id.buttonSinglePlayer);
+        buttonMultiPlayer = (ReleaseImageButton) findViewById(R.id.buttonMultiPlayer);
+        buttonSinglePlayer.setImages(R.drawable.button_single_player, R.drawable.button_single_player_down);
+        buttonMultiPlayer.setImages(R.drawable.button_multi_player, R.drawable.button_multi_player_down);
 
-        ActivityManager am  = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        ConfigurationInfo info  = am.getDeviceConfigurationInfo();
+        buttonSinglePlayer.setOnReleaseListener(new OnReleaseListener() {
+            @Override
+            public void onRelease() {
+                Intent intent = new Intent(MainActivity.this, GameActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
+
+
         //startQuickGame();
         System.out.println("gooogle:here1");
         /*mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -73,6 +84,7 @@ public class MainActivity extends Activity implements RoomUpdateListener, RealTi
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();*/
+
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Plus.API, new Plus.PlusOptions.Builder()
@@ -105,50 +117,22 @@ public class MainActivity extends Activity implements RoomUpdateListener, RealTi
         // minimum: 1 other player; maximum: 3 other players
         //Intent intent = Games.RealTimeMultiplayer.getSelectOpponentsIntent(mGoogleApiClient, 1, 3);
         //startActivityForResult(intent, RC_SELECT_PLAYERS);
-/*
-        boolean supportsES2 = (info.reqGlEsVersion >= 0x20000);
-        if (supportsES2) {
-            MainRenderer mainRenderer = new MainRenderer(getApplicationContext());
-
-            MainSurfaceView mainSurfaceView = new MainSurfaceView(this);
-            mainSurfaceView.setEGLContextClientVersion(2);
-            mainSurfaceView.setRenderer(mainRenderer);
-            this.setContentView(mainSurfaceView);
-
-            //mainRenderer.loadTexture(getApplicationContext(), R.drawable.basic_texture);
-
-            final Shape shape = new Shape(new float[] {
-                    -50, 0, 0,
-                    0, 0, 0,
-                    0, -50, 0},
-                    new short[] {
-                    0, 1, 2
-                    }, new float[] {});
-            final Pad pad = new Pad();
-            final Ball ball = new Ball();
-            ball.setPad(pad);
-            //mainRenderer.add(shape2);
-            mainRenderer.add(shape);
-            mainRenderer.add(pad);
-            mainRenderer.add(ball);
-            mainRenderer.init();
-            //pad.translate(0, 0.7f);
-            mainSurfaceView.setOnGlobalTouchListener(new OnGlobalTouchListener() {
-                @Override
-                public boolean onTouch(MotionEvent event) {
-                    //if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                        //System.out.println("DOWN: " + event.getRawX() + ", " + event.getRawY());
-                        pad.set(-event.getRawX() + ScreenInfo.RES_X/2, event.getRawY() - ScreenInfo.RES_Y/2);
-                    //}
-                    return true;
-                }
-            });
-
-        } else {
-            Log.e("OpenGLES 2", "Device does not support ES2.");
-        }
-*/
     }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        setBackgroundImage(newConfig.orientation);
+    }
+
+    private void setBackgroundImage(int orientation) {
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            background.setImageResource(R.drawable.horizontal);
+        } else if (orientation == Configuration.ORIENTATION_PORTRAIT){
+            background.setImageResource(R.drawable.vertical);
+        }
+    }
+
 
     @Override
     public void onActivityResult(int request, int response, Intent data) {
@@ -366,7 +350,7 @@ public class MainActivity extends Activity implements RoomUpdateListener, RealTi
         System.out.println("GOOoGLE:ONCONNECTED");
         //Intent intent = Games.RealTimeMultiplayer.getSelectOpponentsIntent(mGoogleApiClient, 1, 3);
         //startActivityForResult(intent, RC_SELECT_PLAYERS);
-        Games.Invitations.registerInvitationListener(mGoogleApiClient, this);
+        //Games.Invitations.registerInvitationListener(mGoogleApiClient, this);
 
 
     }
