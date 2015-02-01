@@ -16,7 +16,6 @@ import com.bluewall.spinpong.UI.ScreenInfo;
 import com.bluewall.spinpong.gles.MainRenderer;
 import com.bluewall.spinpong.gles.MainSurfaceView;
 import com.bluewall.spinpong.gles.OnGlobalTouchListener;
-import com.bluewall.spinpong.gles.Shape;
 
 /**
  * Created by david on 1/29/15.
@@ -30,8 +29,6 @@ public class GameActivity extends Activity {
         DisplayMetrics displayMetrics = new DisplayMetrics();
         WindowManager wm = (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE); // the results will be higher than using the activity context object or the getWindowManager() shortcut
         wm.getDefaultDisplay().getMetrics(displayMetrics);
-        //final int screenWidth = displayMetrics.widthPixels;
-        //final int screenHeight = displayMetrics.heightPixels;
 
         ScreenInfo.RES_X = displayMetrics.widthPixels;
         ScreenInfo.RES_Y = displayMetrics.heightPixels;
@@ -51,25 +48,12 @@ public class GameActivity extends Activity {
 
             //mainRenderer.loadTexture(getApplicationContext(), R.drawable.basic_texture);
 
-            final Shape shape = new Shape(new float[] {
-                    -50, 0, 0,
-                    0, 0, 0,
-                    0, -50, 0},
-                    new short[] {
-                    0, 1, 2
-                    }, new float[] {});
             final Pad pad = new Pad();
             final Ball ball = new Ball(0, 0);
             ball.setPad(pad);
-            //final Ball ball2 = new Ball(1f, 1f);
-            //ball2.setPad(pad);
-            //mainRenderer.add(shape2);
-            //mainRenderer.add(shape);
             mainRenderer.add(pad);
             mainRenderer.add(ball);
-            //mainRenderer.add(ball2);
             mainRenderer.init();
-            //pad.translate(0, 0.7f);
             mainSurfaceView.setOnGlobalTouchListener(new OnGlobalTouchListener() {
                 @Override
                 public boolean onTouch(MotionEvent event) {

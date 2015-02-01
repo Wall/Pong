@@ -58,7 +58,6 @@ public class Ball extends Shape {
         new Thread(new Runnable() {
 
             private static final int SLEEP = 15;
-            private long clock = System.currentTimeMillis() - SLEEP;
             private float scale = 1;
             private float lastX, lastY;
             private float lastPadX, lastPadY;
@@ -71,7 +70,6 @@ public class Ball extends Shape {
 
                 while (true) {
 
-                    setClockAndScale();
                     updatePosition();
                     checkCollision();
                     updateOpenGLData();
@@ -141,12 +139,6 @@ public class Ball extends Shape {
                 lastY = y;
                 lastPadX = pad.getX();
                 lastPadY = pad.getY();
-            }
-
-            private void setClockAndScale() {
-                //long time = System.currentTimeMillis();
-                //scale = ((float) (time - clock))/1000;
-                //clock = time;
             }
 
             private void updatePosition() {

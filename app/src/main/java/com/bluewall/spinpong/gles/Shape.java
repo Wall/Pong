@@ -75,9 +75,6 @@ public class Shape {
     public void setVertexOffset(int vertexOffset) {
         this.vertexOffset = vertexOffset;
     }
-    public int getVertexOffset() {
-        return vertexOffset;
-    }
     public ShortBuffer getIndexBuffer() {
         return indexBuffer;
     }

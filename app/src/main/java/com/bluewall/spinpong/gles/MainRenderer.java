@@ -27,7 +27,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
     public static int DIMENSIONS = 3;
     private int mProgramHandle;
-    private int _rectangleAPositionLocation;
+    private int mPositionLocation;
     private int normalLocation;
     private int transformationMatrixLocation;
     private int mMVPMatrixHandle;
@@ -54,13 +54,13 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         gl.glClearColor(0.0f, 0.0f, 0.0f, 1);
         //initShapes();
-        int _rectangleVertexShader = loadShader(GLES20.GL_VERTEX_SHADER, _rectangleVertexShaderCode);
-        int _rectangleFragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, _rectangleFragmentShaderCode);
+        int _rectangleVertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode);
+        int _rectangleFragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode);
         mProgramHandle = GLES20.glCreateProgram();
         GLES20.glAttachShader(mProgramHandle, _rectangleVertexShader);
         GLES20.glAttachShader(mProgramHandle, _rectangleFragmentShader);
         GLES20.glLinkProgram(mProgramHandle);
-        _rectangleAPositionLocation = GLES20.glGetAttribLocation(mProgramHandle, "aPosition");
+        mPositionLocation = GLES20.glGetAttribLocation(mProgramHandle, "aPosition");
         normalLocation = GLES20.glGetAttribLocation(mProgramHandle, "normal");
         transformationMatrixLocation = GLES20.glGetUniformLocation(mProgramHandle, "transformationMatrix");
         mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgramHandle, "uMVPMatrix");
@@ -72,13 +72,10 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     }
 
     public void onSurfaceChanged(GL10 gl, int width, int height) {
-        System.out.println("WH: " + width + ", " + height);
         gl.glViewport(0, 0, width, height);
 
         float ratio = (float) width / height;
 
-        // this projection matrix is applied to object coordinates
-        // in the onDrawFrame() method
         Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 2.85f, 7);
     }
@@ -87,24 +84,14 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         gl.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
         GLES20.glUseProgram(mProgramHandle);
-        GLES20.glVertexAttribPointer(_rectangleAPositionLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, vertexBuffer);
-        GLES20.glEnableVertexAttribArray(_rectangleAPositionLocation);
+        GLES20.glVertexAttribPointer(mPositionLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, vertexBuffer);
+        GLES20.glEnableVertexAttribArray(mPositionLocation);
         GLES20.glVertexAttribPointer(normalLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, normalBuffer);
         GLES20.glEnableVertexAttribArray(normalLocation);
         GLES20.glVertexAttribPointer(mTextureCoordinateHandle, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, normalBuffer);
         GLES20.glEnableVertexAttribArray(mTextureCoordinateHandle);
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
-        //GLES20.glVertexAttribPointer(normalLocation, DIMENSIONS, GLES20.GL_FLOAT, false, 4*DIMENSIONS, normalBuffer);
-        //GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
 
-        //System.arraycopy(baseVertices, 0, vertices, 0, baseVertices.length);
-        //for (int i = 0; i < shapes.size(); ++i) {
-            //applyTransform(shapes.get(i));
-        //}
-        // Set the camera position (View matrix)
-
-
-        // Set the active texture unit to texture unit 0.
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 
         // Bind the texture to this unit.
@@ -119,9 +106,6 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
 
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
-
-        //GLES20.glEnableVertexAttribArray(transformationMatrixLocation);
-
 
         for (int i = 0; i < shapes.size(); ++i) {
             Shape shape = shapes.get(i);
@@ -174,15 +158,11 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         normalBuffer.put(normals);
         normalBuffer.position(0);
 
-
-
         baseVertices = new float[vertices.length];
         System.arraycopy(vertices, 0, baseVertices, 0, vertices.length);
-//        vertexBuffer.put(vertices);
-//        vertexBuffer.position(0);
     }
 
-    private final String _rectangleVertexShaderCode =
+    private final String vertexShaderCode =
                     "attribute vec4 aPosition;                                    " +
                     "attribute vec3 normal; " +
                     "attribute vec2 a_TexCoordinate;                                   " +
@@ -209,7 +189,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
                     "   gl_Position = uMVPMatrix*tPosition;           " +
                     "}                                                            ";
 
-    private final String _rectangleFragmentShaderCode =
+    private final String fragmentShaderCode =
                     "varying vec3 lightDir;                                    " +
                     "varying vec3 N;" +
                     "varying vec4 tPosition;" +

@@ -27,9 +27,6 @@ public class MainSurfaceView extends GLSurfaceView {
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
         if (event != null) {
-            //if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            //   System.out.println("DOWN");
-            //}
             if (onGlobalTouchListener != null) {
                 return onGlobalTouchListener.onTouch(event);
             }
