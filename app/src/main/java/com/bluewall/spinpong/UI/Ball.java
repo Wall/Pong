@@ -9,7 +9,7 @@ import com.bluewall.spinpong.gles.Shape;
  */
 public class Ball extends Shape {
 
-    private static final float RADIUS = 60f;
+    private static final float RADIUS = 0.04f;
 
     /* Increases spin rate with regards to animation */
     private static final int SPIN_ANIMATION_EXAGGERATION = 6;
@@ -20,13 +20,13 @@ public class Ball extends Shape {
     /* Affects how hard the pad can hit the ball */
     private static final float SPEED_ONHIT = 0.1f;
     /* Rate at which spin is lost per frame */
-    private static final float SPIN_DECAY = 0.4f;
+    private static final float SPIN_DECAY = 0.003f;
     /* Spin decays faster when rolling */
-    private static final float SPIN_ROLLING_DECAY = 4*SPIN_DECAY;
+    private static final float SPIN_ROLLING_DECAY = 3*SPIN_DECAY;
     /* Level of spin at which ball transitions from spinning to rolling and visa versa */
     private static final float SPIN_ANIMATION_THRESHOLD = 0.4f;
     /* Affects how hard the pad can spin the ball */
-    private static final float SPIN_ONHIT = 0.4f;
+    private static final float SPIN_ONHIT = 0.15f;
     /* How many frames are interpolated during the collision detection process */
     private static final int INTERPOLATION_NUMBER = 16;
     /* Determines size of bounding field,
@@ -38,8 +38,8 @@ public class Ball extends Shape {
     /////////////////////////////////////////////////////////////////////////
 
     /* Current x and y velocity */
-    private float xspeed = 900;
-    private float yspeed = 400;
+    private float xspeed = 40.0f / ScreenInfo.RES_Y;
+    private float yspeed = 12.0f / ScreenInfo.RES_Y;
     /* Vector [u, v] the direction in which the ball is rolling */
     private float u = 0;
     private float v = 0;
@@ -59,7 +59,7 @@ public class Ball extends Shape {
 
             private static final int SLEEP = 15;
             private long clock = System.currentTimeMillis() - SLEEP;
-            private float scale;
+            private float scale = 1;
             private float lastX, lastY;
             private float lastPadX, lastPadY;
             private boolean hadCollided = false;
@@ -67,10 +67,10 @@ public class Ball extends Shape {
 
             @Override
             public void run() {
-
                 while (pad == null);
 
                 while (true) {
+
                     setClockAndScale();
                     updatePosition();
                     checkCollision();
@@ -87,25 +87,26 @@ public class Ball extends Shape {
 
             private void checkCollision() {
                 //LEFT WALL
-                if (x <= RADIUS - ScreenInfo.RES_X / 2) {
+                if (x <= RADIUS - ScreenInfo.RATIO) {
                     collision();
                     xspeed = Math.abs(xspeed);
                 }
                 //RIGHT WALL
-                else if (x >= ScreenInfo.RES_X / 2 - RADIUS) {
+                else if (x >= ScreenInfo.RATIO - RADIUS) {
                     collision();
                     xspeed = -Math.abs(xspeed);
                 }
                 //TOP WALL
-                if (y <= RADIUS - ScreenInfo.RES_Y / 2) {
+                if (y <= RADIUS - 1) {
                     collision();
                     yspeed = Math.abs(yspeed);
                 }
                 //BOTTOM WALL
-                else if (y >= ScreenInfo.RES_Y / 2 - RADIUS) {
+                else if (y >= 1 - RADIUS) {
                     collision();
                     yspeed = -Math.abs(yspeed);
                 }
+
                 //Checks if pad and ball are in the near vicinity of each other
                 if (Math.abs(pad.getX() - x) + Math.abs(pad.getY() - y) <= BOUNDING_COLLISION_SIZE*(Pad.HEIGHT/2 + Pad.WIDTH/2 + 2*RADIUS)) {
                     boolean hit = false;
@@ -127,11 +128,12 @@ public class Ball extends Shape {
                     }
                     if (!hit) {
                         if (hadCollided) {
-                            xspeed = -maxSpeed;
+                            xspeed = maxSpeed;
                         }
                         hadCollided = false;
                     }
                 }
+
             }
 
             private void setPreviousFrameData() {
@@ -142,9 +144,9 @@ public class Ball extends Shape {
             }
 
             private void setClockAndScale() {
-                long time = System.currentTimeMillis();
-                scale = ((float) (time - clock))/1000;
-                clock = time;
+                //long time = System.currentTimeMillis();
+                //scale = ((float) (time - clock))/1000;
+                //clock = time;
             }
 
             private void updatePosition() {
@@ -154,7 +156,7 @@ public class Ball extends Shape {
                 rot += 0.1;
                 rotZ += SPIN_ANIMATION_EXAGGERATION*spin*scale;
 
-                rotate(spin);
+                rotate(-spin);
                 spin *= (1 - (isSpinning ? SPIN_DECAY : SPIN_ROLLING_DECAY)*scale);
             }
 
@@ -195,33 +197,21 @@ public class Ball extends Shape {
             }
 
             private boolean intersects() {
-                float cdx = Math.abs(x - pad.getX());
-                float cdy = Math.abs(y - pad.getY());
-
-                if (cdx > (Pad.WIDTH/2 + RADIUS)) { return false; }
-                if (cdy > (Pad.HEIGHT/2 + RADIUS)) { return false; }
-
-                if (cdx <= (Pad.WIDTH/2)) { return true; }
-                if (cdy <= (Pad.HEIGHT/2)) { return true; }
-
-                float cdsq = (cdx - Pad.WIDTH/2)*(cdx - Pad.WIDTH/2) +
-                        (cdy - Pad.HEIGHT/2)*(cdy - Pad.HEIGHT/2);
-
-                return cdsq <= RADIUS*RADIUS;
+                return intersects(x, y, pad.getX(), pad.getY());
             }
 
             private boolean intersects(float x1, float y1, float x2, float y2) {
                 float cdx = Math.abs(x1 - x2);
                 float cdy = Math.abs(y1 - y2);
 
-                if (cdx > (Pad.WIDTH/2 + RADIUS)) { return false; }
-                if (cdy > (Pad.HEIGHT/2 + RADIUS)) { return false; }
+                if (cdx > ((Pad.WIDTH/2 + RADIUS))) { return false; }
+                if (cdy > (((Pad.HEIGHT/2)*ScreenInfo.RATIO + RADIUS))) { return false; }
 
                 if (cdx <= (Pad.WIDTH/2)) { return true; }
                 if (cdy <= (Pad.HEIGHT/2)) { return true; }
 
-                float cdsq = (cdx - Pad.WIDTH/2)*(cdx - Pad.WIDTH/2) +
-                        (cdy - Pad.HEIGHT/2)*(cdy - Pad.HEIGHT/2);
+                float cdsq = (cdx - (Pad.WIDTH/2))*(cdx - (Pad.WIDTH/2)) +
+                        (cdy - (Pad.HEIGHT/2))*(cdy - (Pad.HEIGHT/2));
 
                 return cdsq <= RADIUS*RADIUS;
             }
@@ -235,7 +225,6 @@ public class Ball extends Shape {
 
     @Override
     public float[] genTransformationMatrix() {
-
         System.arraycopy(IDENTITY_MATRIX, 0, bufferMatrix, 0, 16);
         System.arraycopy(IDENTITY_MATRIX, 0, transformationMatrix, 0, 16);
         if (isSpinning) {
@@ -260,12 +249,18 @@ public class Ball extends Shape {
            transformationMatrix[10] = cos;
         }
 
-        bufferMatrix[12] += x * 2 / RESOLUTION_X;
-        bufferMatrix[13] -= y * 2 / RESOLUTION_Y;
+        bufferMatrix[12] -= x;
+        bufferMatrix[13] += y;
 
         Matrix.multiplyMM(resultMatrix, 0, bufferMatrix, 0, transformationMatrix, 0);
 
         return resultMatrix;
+    }
+
+    public Ball(float x, float y) {
+        this();
+        this.x = x;
+        this.y = y;
     }
 
     public Ball() {

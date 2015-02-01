@@ -26,7 +26,7 @@ public class GameActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         DisplayMetrics displayMetrics = new DisplayMetrics();
         WindowManager wm = (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE); // the results will be higher than using the activity context object or the getWindowManager() shortcut
         wm.getDefaultDisplay().getMetrics(displayMetrics);
@@ -35,6 +35,7 @@ public class GameActivity extends Activity {
 
         ScreenInfo.RES_X = displayMetrics.widthPixels;
         ScreenInfo.RES_Y = displayMetrics.heightPixels;
+        ScreenInfo.RATIO = ((float) ScreenInfo.RES_X)/ ((float) ScreenInfo.RES_Y);
 
         ActivityManager am  = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         ConfigurationInfo info  = am.getDeviceConfigurationInfo();
@@ -58,12 +59,15 @@ public class GameActivity extends Activity {
                     0, 1, 2
                     }, new float[] {});
             final Pad pad = new Pad();
-            final Ball ball = new Ball();
+            final Ball ball = new Ball(0, 0);
             ball.setPad(pad);
+            //final Ball ball2 = new Ball(1f, 1f);
+            //ball2.setPad(pad);
             //mainRenderer.add(shape2);
-            mainRenderer.add(shape);
+            //mainRenderer.add(shape);
             mainRenderer.add(pad);
             mainRenderer.add(ball);
+            //mainRenderer.add(ball2);
             mainRenderer.init();
             //pad.translate(0, 0.7f);
             mainSurfaceView.setOnGlobalTouchListener(new OnGlobalTouchListener() {
@@ -71,7 +75,7 @@ public class GameActivity extends Activity {
                 public boolean onTouch(MotionEvent event) {
                     //if (event.getAction() == MotionEvent.ACTION_MOVE) {
                         //System.out.println("DOWN: " + event.getRawX() + ", " + event.getRawY());
-                        pad.set(-event.getRawX() + ScreenInfo.RES_X/2, event.getRawY() - ScreenInfo.RES_Y/2);
+                        pad.set((2*event.getRawX() - ScreenInfo.RES_X)/ScreenInfo.RES_Y, (-2*event.getRawY() + ScreenInfo.RES_Y)/ScreenInfo.RES_Y);
                     //}
                     return true;
                 }

@@ -7,9 +7,9 @@ import com.bluewall.spinpong.gles.Shape;
  */
 public class Pad extends Shape {
 
-    public static final float WIDTH = 32f;
-    public static final float HEIGHT = 360f;
-    public static final float DEPTH = 120f;
+    public static final float WIDTH = 0.02f;
+    public static final float HEIGHT = 0.25f;
+    public static final float DEPTH = 0.2f;
 
     private static final float F = 0.759835686f;
 

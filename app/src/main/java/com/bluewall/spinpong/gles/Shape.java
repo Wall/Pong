@@ -33,9 +33,6 @@ public class Shape {
     static {
 
     }
-    protected final float RESOLUTION_Y = 1440;
-    protected final float RESOLUTION_X = 1440;
-    protected final float RESOLUTION_Z = 1440;
 
     public Shape(float[] vertices, short[] indices, float[] normals) {
         this.vertices = vertices;
@@ -44,9 +41,9 @@ public class Shape {
 
         for (int i = 0; i < vertices.length; ++i) {
             switch (i%MainRenderer.DIMENSIONS) {
-                case 0: vertices[i] = vertices[i] * 2 / RESOLUTION_X; break;
-                case 1: vertices[i] = vertices[i] * 2 / RESOLUTION_Y; break;
-                case 2: vertices[i] = vertices[i] * 2 / RESOLUTION_Z; break;
+                case 0: vertices[i] = vertices[i] * 2; break;
+                case 1: vertices[i] = vertices[i] * 2; break;
+                case 2: vertices[i] = vertices[i] * 2; break;
             }
         }
     }
@@ -94,8 +91,8 @@ public class Shape {
     }
     public float[] genTransformationMatrix() {
         System.arraycopy(IDENTITY_MATRIX, 0, resultMatrix, 0, 16);
-        resultMatrix[12] += x * 2 / RESOLUTION_X;
-        resultMatrix[13] -= y * 2 / RESOLUTION_Y;
+        resultMatrix[12] -= x;
+        resultMatrix[13] += y;
 
         return resultMatrix;
     }

@@ -7,5 +7,6 @@ public class ScreenInfo {
 
     public static int RES_X;
     public static int RES_Y;
+    public static float RATIO;
 
 }

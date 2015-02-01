@@ -9,7 +9,6 @@ import android.opengl.GLUtils;
 import android.opengl.Matrix;
 
 import com.bluewall.spinpong.R;
-import com.bluewall.spinpong.model.Vec2;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -73,6 +72,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     }
 
     public void onSurfaceChanged(GL10 gl, int width, int height) {
+        System.out.println("WH: " + width + ", " + height);
         gl.glViewport(0, 0, width, height);
 
         float ratio = (float) width / height;
