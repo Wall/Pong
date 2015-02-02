@@ -10,6 +10,8 @@ import android.opengl.Matrix;
 
 import com.bluewall.spinpong.R;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -53,22 +55,26 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         gl.glClearColor(0.0f, 0.0f, 0.0f, 1);
-        //initShapes();
-        int _rectangleVertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode);
-        int _rectangleFragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode);
-        mProgramHandle = GLES20.glCreateProgram();
-        GLES20.glAttachShader(mProgramHandle, _rectangleVertexShader);
-        GLES20.glAttachShader(mProgramHandle, _rectangleFragmentShader);
-        GLES20.glLinkProgram(mProgramHandle);
-        mPositionLocation = GLES20.glGetAttribLocation(mProgramHandle, "aPosition");
-        normalLocation = GLES20.glGetAttribLocation(mProgramHandle, "normal");
-        transformationMatrixLocation = GLES20.glGetUniformLocation(mProgramHandle, "transformationMatrix");
-        mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgramHandle, "uMVPMatrix");
-        mTextureUniformHandle = GLES20.glGetUniformLocation(mProgramHandle, "u_Texture");
-        mTextureCoordinateHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_TexCoordinate");
 
-        // Load the texture
-        mTextureDataHandle = loadTexture(context, R.drawable.basic_texture);
+        try {
+            int vertexShaderSource = loadShader(GLES20.GL_VERTEX_SHADER, fileToString("vertex_shader.c"));
+            int fragmentShaderSource = loadShader(GLES20.GL_FRAGMENT_SHADER, fileToString("fragment_shader.c"));
+            mProgramHandle = GLES20.glCreateProgram();
+            GLES20.glAttachShader(mProgramHandle, vertexShaderSource);
+            GLES20.glAttachShader(mProgramHandle, fragmentShaderSource);
+            GLES20.glLinkProgram(mProgramHandle);
+            mPositionLocation = GLES20.glGetAttribLocation(mProgramHandle, "aPosition");
+            normalLocation = GLES20.glGetAttribLocation(mProgramHandle, "normal");
+            transformationMatrixLocation = GLES20.glGetUniformLocation(mProgramHandle, "transformationMatrix");
+            mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgramHandle, "uMVPMatrix");
+            mTextureUniformHandle = GLES20.glGetUniformLocation(mProgramHandle, "u_Texture");
+            mTextureCoordinateHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_TexCoordinate");
+
+            // Load the texture
+            mTextureDataHandle = loadTexture(context, R.drawable.basic_texture);
+        } catch (IOException e) {
+            System.exit(1);
+        }
     }
 
     public void onSurfaceChanged(GL10 gl, int width, int height) {
@@ -162,57 +168,13 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         System.arraycopy(vertices, 0, baseVertices, 0, vertices.length);
     }
 
-    private final String vertexShaderCode =
-                    "attribute vec4 aPosition;                                    " +
-                    "attribute vec3 normal; " +
-                    "attribute vec2 a_TexCoordinate;                                   " +
-                    "varying vec3 lightDir;                                    " +
-                    "varying vec3 N;                                            " +
-                    "varying vec4 tPosition;" +
-                    "varying vec2 v_TexCoordinate;" +
-                    "uniform mat4 transformationMatrix;                           " +
-                    "uniform mat4 uMVPMatrix;" +
-                    "const vec3 lightPos = vec3(0.5f, 0.0f, 0.0);                                             " +
-                    "const mat4 perspectiveMatrix = mat4(" +
-                            "1.1f, 0, 0, 0," +
-                            "0, 1.2f, 0, 0," +
-                            "0, 0, -1, -1," +
-                            "0, 0, -1f, 1" +
-                            ");" +
-                    "void main() {                                                " +
-                    "   N = normalize(mat3(transformationMatrix)*normal);             " +//normalize(mat3(transformationMatrix)*normal)
-                    "   tPosition = transformationMatrix*aPosition;" +
-                    "   lightDir = normalize(lightPos - tPosition); " +
-                    "   v_TexCoordinate = a_TexCoordinate;                              " +
-                    //"   normal = normalize(gl_NormalMatrix * gl_Normal);             " +
-                    //"   gl_Position = perspectiveMatrix*tPosition;           " +
-                    "   gl_Position = uMVPMatrix*tPosition;           " +
-                    "}                                                            ";
+    private String fileToString(String filename) throws IOException {
+        InputStream is = context.getAssets().open(filename);
 
-    private final String fragmentShaderCode =
-                    "varying vec3 lightDir;                                    " +
-                    "varying vec3 N;" +
-                    "varying vec4 tPosition;" +
-                    "uniform sampler2D u_Texture;" +
-                    "const vec3 lightPos = vec3(0.5f, 0.0f, 0.0);" +
-                    "float diffuseSimple(vec3 L, vec3 N){" +
-                    "   return clamp(dot(L,N),0.0,1.0);" +
-                    "}                                    " +
-                    "void main() {                             " +
-                    "    float dist = length(lightDir);             " + //dot(lightDir,normalize(N)) (1.0f)/(1.0f + 0.5f*dist)
-                    //"    float intensity = 1.0f/(1.0f + 0.5f*dist);  " +
-                    "    float intensity = diffuseSimple(lightDir, N)/(1.0f + 0.3f*dist);" +
-                    //"    vec3 L = normalize(lightPos.xyz - tPosition.xyz);" +
-                    //"    vec4 Idiff = vec4(1.0, 1.0, 1.0, 1.0)*max(dot(N,L), 0.0);" +
-                            //"   Idiff = clamp(Idiff, 0.0, 1.0);" +
-                            //"   gl_FragColor = Idiff;" +
-                    //"    float intensity = dot(lightDir,N);    " +
-                    //"    intensity = floor(intensity*5.0f)/5.0f; " +
-                    "    vec4 col = vec4(intensity + 0.15f ,intensity + 0.2f , intensity + 0.45f, 1);             " +
-                    "    gl_FragColor = col;        " +
-                    //"    gl_FragColor = col* texture2D(u_Texture, v_TexCoordinate);        " +
-                    //"    gl_FragColor = vec4(1, 1, 1, 1);        " +
-                    "}                                     ";
+        byte[] b = new byte[is.available()];
+        is.read(b);
+        return new String(b);
+    }
 
     private int loadShader(int type, String source)  {
         int shader = GLES20.glCreateShader(type);
