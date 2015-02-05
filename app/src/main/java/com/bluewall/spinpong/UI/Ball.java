@@ -54,7 +54,29 @@ public class Ball extends Shape {
     private Pad pad;
 
     private void init() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (pad == null);
 
+                x = -1.1f;
+                y = 0f;
+                Path.INSTANCE.setInitialParameters(x, y, 0.05f, 0.05f, 0);
+
+                for (int i =0 ; i < 1000; ++i) {
+                    float[] pos = Path.INSTANCE.getPosition(i);
+                    System.out.println("Flagh: " + pos[0] + ", " + pos[1]);
+                    x = pos[0];
+                    y = pos[1];
+                    try {
+                        Thread.sleep(15);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+        /*
         new Thread(new Runnable() {
 
             private static final int SLEEP = 15;
@@ -126,13 +148,15 @@ public class Ball extends Shape {
                     }
                     if (!hit) {
                         if (hadCollided) {
-                            xspeed = maxSpeed;
+                            System.out.println("Release: " + count++);
+                            xspeed = (pad.getX() > x ? -1 : 1)*maxSpeed;
                         }
                         hadCollided = false;
                     }
                 }
 
             }
+            int count = 0;
 
             private void setPreviousFrameData() {
                 lastX = x;
@@ -160,11 +184,13 @@ public class Ball extends Shape {
             }
 
             private void bpCollision() {
+                collision();
                 int side = lastX < lastPadX ? -1 : 1;
-                float sumX = side*((x - lastX) - (pad.getX() - lastPadX) * SPEED_ONHIT) / scale;
+                //float sumX = side*((x - lastX) - (pad.getX() - lastPadX) * SPEED_ONHIT) / scale;
+                float sumX = xspeed;
 
                 spin += (pad.getY() - lastPadY) * scale * SPIN_ONHIT;
-                collision();
+
                 xspeed = -sumX;
                 x = (RADIUS + Pad.WIDTH)*side + pad.getX();
 
@@ -209,6 +235,7 @@ public class Ball extends Shape {
             }
 
         }).start();
+        */
     }
 
     public void setPad(Pad pad) {
